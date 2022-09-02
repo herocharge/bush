@@ -54,6 +54,9 @@ int tokenize(char* s, int len, char delim, char*** out){
     (*out)[ind2] = (char *) malloc(sizeof(char) * (len - ind + 1));
     (*out)[ind2][len - ind] = 0;
     strncpy((*out)[ind2], &s[ind], len - ind);
+    for(int i = 0; i < count; i++){
+        trim((*out)[i], strlen((*out)[i]));
+    }
     return count;
 }
 void destroy_tokens(char** p, int len){

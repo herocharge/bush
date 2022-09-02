@@ -3,19 +3,28 @@
 
 #include <unistd.h>
 #include <sys/types.h>
+#include <stdio.h>
+#include <string.h>
+#include <signal.h>
+#include <stdlib.h>
 
-enum status{
+enum Status{
     DONE = 0,
     STOPPED = 1,
-    RUNNING = 2
+    RUNNING = 2,
+    READY = 3
 };
 
 typedef struct job{
     pid_t pid;  // process_id
     pid_t pgid; // process group id
     int is_fg;  // is foreground process ?
-    int status; // done? stopped? running?
+    int stat;// done? stopped? running?
+    char* cmd;  // command to execute
 }Job;
 
+Job create_job(int is_fg, int stat, char* cmd);
+int kill_job(Job* jobs, int ind);
+void free_job(Job job);
 
 #endif
