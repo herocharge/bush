@@ -22,6 +22,7 @@ Commands:
 - `pwd` prints the absolute path of the current working directory
 - All other commands are executed by creating a child process and then using `execvp`.
 - Upcoming builtins - `ls`, `fg`, `bg`, `jobs`, `exit`, `pinfo`, `history`, `discover`.
+- `jobs` command to list the jobs running
 
 Jobs:
 - The jobs system is incomplete.

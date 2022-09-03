@@ -12,6 +12,7 @@
 #include "echo.h"
 #include "cd.h"
 #include "jobs.h"
+#include "ls.h"
 // #include "jobs.h"
 
 #define STDIN 0
@@ -62,6 +63,9 @@ void sigchld_handler(int sig, siginfo_t *info, void *ucontext)
         if(WIFSTOPPED(status)){
             // printf("stopped\n");
             jobs[pidtojid[pid]].stat = STOPPED;
+        }
+        if(WIFSIGNALED(status)){
+            jobs[pidtojid[pid]].stat = KILLED;
         }
         // printf("%d\n", jobs[pidtojid[pid]].stat);
         // printf("jid: %d\n", pidtojid[pid]);
@@ -139,6 +143,13 @@ void run(int jobno){
                 if(jobs[i].stat == DONE)continue;
                 printf("%d \t %d \t %4d \t %s \n", jobs[i].pid, jobs[i].pgid, jobs[i].stat, jobs[i].cmd);
         }
+    }
+    else if(!strcmp(argv[0], "ls")){
+        ls(argc, argv, HOME);
+    }
+    else if(!strcmp(argv[0], "fg")){
+        int ret = setpgid(atoi(argv[1]), getpgid(getpid()));
+        printf("code %d\n", ret);
     }
     else{
 
@@ -273,6 +284,10 @@ void check_done_bg(){
             printf("[%d]+ Stopped %s\n", i, jobs[i].cmd);
             jobs[i].status_printed = 1;
         }
+        if(jobs[i].stat == KILLED && !jobs[i].status_printed && !jobs[i].is_fg){
+            printf("[%d]+ Killed %s\n", i, jobs[i].cmd);
+            jobs[i].status_printed = 1;
+        }
     }
 }
 
@@ -309,9 +324,10 @@ int main(int argc, char** argv){
         int seq_len = tokenize(command, strlen(command), ';', &sequence);
         for(int i = 0; i < seq_len; i++){
             split(sequence[i]);
+            check_done_bg();
             run_bg();
             run_fg();
-            check_done_bg();
+            
         }
         if(shell_mode)
             print_prompt();

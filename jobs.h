@@ -12,7 +12,8 @@ enum Status{
     DONE = 0,
     STOPPED = 1,
     RUNNING = 2,
-    READY = 3
+    READY = 3,
+    KILLED = 4
 };
 
 typedef struct job{
