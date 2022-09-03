@@ -21,6 +21,7 @@ typedef struct job{
     int is_fg;  // is foreground process ?
     int stat;// done? stopped? running?
     char* cmd;  // command to execute
+    int status_printed;
 }Job;
 
 Job create_job(int is_fg, int stat, char* cmd);
