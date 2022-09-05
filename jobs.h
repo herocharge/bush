@@ -23,6 +23,7 @@ typedef struct job{
     int stat;// done? stopped? running?
     char* cmd;  // command to execute
     int status_printed;
+    int exit_code;
 }Job;
 
 Job create_job(int is_fg, int stat, char* cmd);

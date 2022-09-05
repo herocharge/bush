@@ -13,6 +13,7 @@
 #include "cd.h"
 #include "jobs.h"
 #include "ls.h"
+#include "discover.h"
 // #include "jobs.h"
 
 #define STDIN 0
@@ -70,11 +71,13 @@ void sigchld_handler(int sig, siginfo_t *info, void *ucontext)
         // printf("%d\n", jobs[pidtojid[pid]].stat);
         // printf("jid: %d\n", pidtojid[pid]);
         jobs[pidtojid[pid]].status_printed = 0;
+        jobs[pidtojid[pid]].exit_code = WEXITSTATUS(status);
     }
     if(pid == 0){
         if(info->si_status == SIGTTOU){
             jobs[pidtojid[info->si_pid]].stat = STOPPED;
             jobs[pidtojid[info->si_pid]].status_printed = 0;
+            jobs[pidtojid[info->si_pid]].exit_code = 0;
         }
     }
     //     printf("pid:  %d\n", pid);
@@ -156,6 +159,9 @@ void run(int jobno){
         int ret = setpgid(atoi(argv[1]), getpgid(getpid()));
         printf("code %d\n", ret);
     }
+    else if(!strcmp(argv[0], "discover")){
+        discover(argc, argv);
+    }
     else{
 
         pid_t pid = 0;
@@ -225,7 +231,7 @@ void run_bg(){
             }
             else{
                 jobs[i].pgid = jobs[i].pid = pid;
-                printf("Running %s with pid %d \n", jobs[i].cmd, jobs[i].pid);
+                // printf("Running %s with pid %d \n", jobs[i].cmd, jobs[i].pid);
                 pidtojid[jobs[i].pid] = i;
                 int status;
                 waitpid(pid, &status, WNOHANG);
@@ -282,15 +288,19 @@ void split(char* seq){
 void check_done_bg(){
     for(int i = 0; i < number_of_jobs; i++){
         if(jobs[i].stat == DONE && !jobs[i].status_printed && !jobs[i].is_fg){
-            printf("[%d]+ Done %s\n", i, jobs[i].cmd);
+            printf("[%d] Done %s exited ", i, jobs[i].cmd);
             jobs[i].status_printed = 1;
+            if(!jobs[i].exit_code)
+                printf("normally\n");
+            else
+                printf("abnormally with exitstatus %d\n", jobs[i].exit_code);
         }
         if(jobs[i].stat == STOPPED && !jobs[i].status_printed && !jobs[i].is_fg){
-            printf("[%d]+ Stopped %s\n", i, jobs[i].cmd);
+            printf("[%d] Stopped %s\n", i, jobs[i].cmd);
             jobs[i].status_printed = 1;
         }
         if(jobs[i].stat == KILLED && !jobs[i].status_printed && !jobs[i].is_fg){
-            printf("[%d]+ Killed %s\n", i, jobs[i].cmd);
+            printf("[%d] Killed %s\n", i, jobs[i].cmd);
             jobs[i].status_printed = 1;
         }
     }

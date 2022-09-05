@@ -114,3 +114,20 @@ char *str_replace(char *orig, char *rep, char *with) {
     strcpy(tmp, orig);
     return result;
 }
+
+int is_substr(char* text, char* pattern){
+    int len1 = strlen(text);
+    int len2 = strlen(pattern);
+    for(int i = 0; i < len1 - len2 + 1; i++){
+        int ok = 1;
+        for(int j = 0; j < len2; j++){
+            if(text[i + j] != pattern[j]){
+                ok = 0;
+                break;
+            }
+        }
+        if(ok) 
+            return i+1;
+    }
+    return 0;
+}
