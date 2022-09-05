@@ -14,6 +14,7 @@
 #include "jobs.h"
 #include "ls.h"
 #include "discover.h"
+#include "pinfo.h"
 // #include "jobs.h"
 
 #define STDIN 0
@@ -47,6 +48,7 @@ char HOME[HOME_SIZE];
 Job jobs[MAX_JOBS];
 int pidtojid[MAX_JOBS];
 int number_of_jobs;
+double latest_exit_time = 0;
 
 void sigchld_handler(int sig, siginfo_t *info, void *ucontext)
 {
@@ -107,7 +109,12 @@ void print_prompt(){
         strcpy(&tmp[1], &cwd[home_dir_len]);
         strcpy(cwd, tmp);
     }
-    printf("%s%s%s@%s:%s%s$ %s", COLOR_BOLD, KMAG, uname, sysname, KBLU, cwd, COLOR_OFF);
+    if(latest_exit_time < 1)
+        printf("%s%s%s@%s:%s%s$ %s", COLOR_BOLD, KMAG, uname, sysname, KBLU, cwd, COLOR_OFF);
+    else{
+        printf("%s%s%s@%s:%s%s%s (took %.2lfs)%s$ %s", COLOR_BOLD, KMAG, uname, sysname, KBLU, cwd, KYEL,latest_exit_time,KBLU, COLOR_OFF);
+        latest_exit_time = 0;
+    }
     fflush(stdout);
 }
 
@@ -162,6 +169,14 @@ void run(int jobno){
     else if(!strcmp(argv[0], "discover")){
         discover(argc, argv);
     }
+    else if(!strcmp(argv[0], "pinfo")){
+        if(argc == 1){
+            pinfo(2, getpid());
+        }
+        else{
+            pinfo(2, atoi(argv[1]));
+        }
+    }
     else{
 
         pid_t pid = 0;
@@ -204,7 +219,11 @@ void run_fg(){
             jobs[i].pid = getpid();
             jobs[i].pgid = getpgid(jobs[i].pid);
             pidtojid[jobs[i].pid] = i;
+            time_t start,end;
+            time (&start);
             run(i);
+            time (&end);
+            latest_exit_time = difftime(end, start); 
             jobs[i].stat = DONE; // Reached for every command
             break;
         }
