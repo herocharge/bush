@@ -4,6 +4,6 @@
 #include <stdio.h>
 #include <string.h>
 
-void print_table(char*** data, int rows, int cols);
+void print_table(char*** data, int rows, int cols, int* just);
 
 #endif

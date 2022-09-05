@@ -9,6 +9,7 @@ int cd(int argc, char** argv, char* oldpwd, char* home){
         return chdir("/");
     }
     int len = tokenize(argv[1], strlen(argv[1]), '/', &paths);
+    if(!strlen(paths[0]))chdir("/");
     for(int i =0 ; i < len;i++){
         if(strlen(paths[i]))
             {if(changedir(argc, paths[i], oldpwd, home) == -1)return -1;}

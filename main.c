@@ -145,6 +145,11 @@ void run(int jobno){
         }
     }
     else if(!strcmp(argv[0], "ls")){
+        // for(int i = 1; i < argc; i++){
+        //     printf("%s ", argv[i]);
+        // }
+        // printf("\n");
+        
         ls(argc, argv, HOME);
     }
     else if(!strcmp(argv[0], "fg")){

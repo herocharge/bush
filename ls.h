@@ -16,6 +16,7 @@
 #include <time.h>
 
 #include "print_table.h"
+#include "path_utils.h"
 
 // colors
 #define KNRM  "\x1B[0m"
@@ -29,6 +30,7 @@
 #define COLOR_BOLD  "\e[1m"
 #define COLOR_OFF   "\e[m"
 
+#define MAX_NO_OF_FILES 10000
 
 typedef struct Ls_data
 {
