@@ -143,6 +143,10 @@ int actual_ls(char* file_name, int list_flag, int all_flag, char* home){
     else{
         int ind = 0;
         DIR* dir = opendir(file_name);
+        if(dir == NULL){
+            perror(file_name);
+            return -1;
+        }
         struct dirent* entry;
         while ((entry = readdir(dir)) != NULL) {
             // printf("here3\n");

@@ -15,6 +15,7 @@
 #include "ls.h"
 #include "discover.h"
 #include "pinfo.h"
+#include "history.h"
 // #include "jobs.h"
 
 #define STDIN 0
@@ -49,6 +50,7 @@ Job jobs[MAX_JOBS];
 int pidtojid[MAX_JOBS];
 int number_of_jobs;
 double latest_exit_time = 0;
+int warning_exit = 0;
 
 void sigchld_handler(int sig, siginfo_t *info, void *ucontext)
 {
@@ -138,9 +140,12 @@ void run(int jobno){
         }
         char tmp[PWD_SIZE];
         getcwd(tmp, PWD_SIZE);
-        if(cd(argc, argv, OLDPWD, HOME) == -1)
+        if(cd(argc, argv, OLDPWD, HOME) == -1){
             printf("Bush : cd : %s : No such directory\n", argv[1]);
-        strcpy(OLDPWD, tmp);
+            chdir(tmp);
+        }
+        else
+            strcpy(OLDPWD, tmp);
     } 
     else if(!strcmp(argv[0], "pwd")){
         char pwd[PWD_SIZE];
@@ -176,6 +181,42 @@ void run(int jobno){
         else{
             pinfo(2, atoi(argv[1]));
         }
+    }
+    else if(!strcmp(argv[0], "exit")){
+        if(!warning_exit){
+            int not_dead = 0;
+            for(int i = 0; i < number_of_jobs; i++){
+                if(jobs[i].stat != DONE && jobs[i].stat != KILLED && jobs[i].pid != getpid()){
+                    not_dead = 1;
+                    break;
+                }
+            }
+            if(not_dead){
+                warning_exit = 1;
+                printf("There are still some processes running, You sure you wanna exit?\n");
+            }
+            else{
+                printf("Thank you\n");
+            for(int i = 0; i < number_of_jobs; i++){
+                if(jobs[i].stat != DONE && jobs[i].stat != KILLED){
+                    kill(jobs[i].pid, SIGKILL);
+                }
+            }
+            exit(0);
+            }
+        }
+        else{
+            printf("Thank you\n");
+            for(int i = 0; i < number_of_jobs; i++){
+                if(jobs[i].stat != DONE && jobs[i].stat != KILLED){
+                    kill(jobs[i].pid, SIGKILL);
+                }
+            }
+            exit(0);
+        }
+    }
+    else if(!strcmp(argv[0], "history")){
+        print_history(HOME);
     }
     else{
 
@@ -327,7 +368,8 @@ void check_done_bg(){
 
 int main(int argc, char** argv){
     pid_t sess_id = setsid();
-    printf("Welcome to Bush -v 0.0.1 \n");
+    printf(" ________  ___  ___  ________  ___  ___     \n|\\   __  \\|\\  \\|\\  \\|\\   ____\\|\\  \\|\\  \\    \n\\ \\  \\|\\ /\\ \\  \\\\\\  \\ \\  \\___|\\ \\  \\\\\\  \\   \n \\ \\   __  \\ \\  \\\\\\  \\ \\_____  \\ \\   __  \\  \n  \\ \\  \\|\\  \\ \\  \\\\\\  \\|____|\\  \\ \\  \\ \\  \\ \n   \\ \\_______\\ \\_______\\____\\_\\  \\ \\__\\ \\__\\\n    \\|_______|\\|_______|\\_________\\|__|\\|__|\n                       \\|_________|         \n                                            \n                                            \n");
+    printf("Welcome to Bush - Bhargav's Useless Shell -v 0.0.1 \n");
     printf("Bush pid: %d\n", getpid());
     getcwd(HOME, HOME_SIZE);
     
@@ -357,6 +399,10 @@ int main(int argc, char** argv){
         char** sequence;
         int seq_len = tokenize(command, strlen(command), ';', &sequence);
         for(int i = 0; i < seq_len; i++){
+            if(strlen(sequence[i])){
+                update_history(sequence[i], HOME);
+                // printf("seq: %s\n", sequence[i]);
+            }
             split(sequence[i]);
             check_done_bg();
             run_bg();

@@ -1,8 +1,8 @@
 CC = gcc
-CFLAGS = -Wall -g 
+CFLAGS = -g
 
-all: main.o string_utils.o echo.o cd.o jobs.o ls.o print_table.o path_utils.o discover.o pinfo.o
-	$(CC) $(CFLAGS) main.o string_utils.o echo.o cd.o jobs.o ls.o print_table.o path_utils.o discover.o pinfo.o -o bush
+all: main.o string_utils.o echo.o cd.o jobs.o ls.o print_table.o path_utils.o discover.o pinfo.o history.o
+	$(CC) $(CFLAGS) main.o string_utils.o echo.o cd.o jobs.o ls.o print_table.o path_utils.o discover.o pinfo.o history.o -o bush
 
 main.o: main.c string_utils.h string_utils.o
 	$(CC) $(CFLAGS) -c main.c
@@ -33,6 +33,9 @@ discover.o: discover.h discover.c
 
 pinfo.o: pinfo.h pinfo.c
 	$(CC) $(CFLAGS) -c pinfo.c
+
+history.o: history.h history.c
+	$(CC) $(CFLAGS) -c history.c
 
 clean:
 	rm *.o
