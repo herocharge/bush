@@ -15,6 +15,7 @@
 #include "ls.h"
 #include "discover.h"
 #include "pinfo.h"
+#include "input.h"
 #include "history.h"
 // #include "jobs.h"
 
@@ -56,40 +57,70 @@ void sigchld_handler(int sig, siginfo_t *info, void *ucontext)
 {
     pid_t pid;
     int status;
+    // printf("%d\n", WEXITSTATUS(status));
+    // printf("%d\n", info->si_status);
+    // printf("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n");
     // printf("sighndlr: %d\n", info->si_code);
+    if(jobs[pidtojid[info->si_pid]].is_fg){
+        tcsetpgrp(STDIN_FILENO, getpgrp());
+        tcsetpgrp(STDOUT_FILENO, getpgrp());
+    }
     while((pid = waitpid(-1, &status, WNOHANG)) > 0){
+        if(jobs[pidtojid[pid]].is_fg){
+            // tcsetpgrp(0, getpgrp());
+        }
         // printf("dead : %d\n", pid);
         // printf("status: %d\n", status);
         // printf("sighndlr: %d\n", info->si_code);
         if(WIFEXITED(status)){
             // printf("done\n");
             jobs[pidtojid[pid]].stat = DONE;
+            printf("done\n");
+            
         }
         if(WIFSTOPPED(status)){
             // printf("stopped\n");
             jobs[pidtojid[pid]].stat = STOPPED;
+            jobs[pidtojid[pid]].is_fg = 0;
+            printf("[%d] %d\n", pidtojid[pid], pid);
+            
+        }
+        if(info->si_status == SIGTSTP){
+            // printf("stopped\n");
+            jobs[pidtojid[pid]].stat = STOPPED;
+            jobs[pidtojid[pid]].is_fg = 0;
+            printf("[%d] %d\n", pidtojid[pid], pid);
+            
         }
         if(WIFSIGNALED(status)){
             jobs[pidtojid[pid]].stat = KILLED;
+            printf("killed\n");
         }
         // printf("%d\n", jobs[pidtojid[pid]].stat);
         // printf("jid: %d\n", pidtojid[pid]);
         jobs[pidtojid[pid]].status_printed = 0;
         jobs[pidtojid[pid]].exit_code = WEXITSTATUS(status);
+        jobs[pidtojid[pid]].sig_code = info->si_status;
+        
     }
     if(pid == 0){
-        if(info->si_status == SIGTTOU){
+        if(info->si_status == SIGTTOU || info->si_status == SIGTSTP){
             jobs[pidtojid[info->si_pid]].stat = STOPPED;
+            jobs[pidtojid[info->si_pid]].is_fg = 0;
+            printf("[%d] %d\n", pidtojid[info->si_pid], info->si_pid);
             jobs[pidtojid[info->si_pid]].status_printed = 0;
-            jobs[pidtojid[info->si_pid]].exit_code = 0;
+            jobs[pidtojid[info->si_pid]].exit_code = status;
+            jobs[pidtojid[info->si_pid]].sig_code = info->si_code;
         }
+        jobs[pidtojid[info->si_pid]].exit_code = info->si_code;
+        jobs[pidtojid[info->si_pid]].sig_code = info->si_status;
     }
     //     printf("pid:  %d\n", pid);
     //     printf("status: %d\n", info->si_status);
     // printf("sigchld triggered\n");
 }
 
-void sigttin_handler(int sig){
+void sigtstp_handler(int sig){
     printf("oh no\n");
 }
 
@@ -111,10 +142,11 @@ void print_prompt(){
         strcpy(&tmp[1], &cwd[home_dir_len]);
         strcpy(cwd, tmp);
     }
+    printf("\n ____");
     if(latest_exit_time < 1)
-        printf("%s%s%s@%s:%s%s$ %s", COLOR_BOLD, KMAG, uname, sysname, KBLU, cwd, COLOR_OFF);
+        printf("\n|____[%s%s%s@%s:%s%s$ %s]\n", COLOR_BOLD, KMAG, uname, sysname, KBLU, cwd, COLOR_OFF);
     else{
-        printf("%s%s%s@%s:%s%s%s (took %.2lfs)%s$ %s", COLOR_BOLD, KMAG, uname, sysname, KBLU, cwd, KYEL,latest_exit_time,KBLU, COLOR_OFF);
+        printf("\n////[%s%s%s@%s:%s%s%s (took %.2lfs)%s$ %s]\n", COLOR_BOLD, KMAG, uname, sysname, KBLU, cwd, KYEL,latest_exit_time,KBLU, COLOR_OFF);
         latest_exit_time = 0;
     }
     fflush(stdout);
@@ -141,7 +173,7 @@ void run(int jobno){
         char tmp[PWD_SIZE];
         getcwd(tmp, PWD_SIZE);
         if(cd(argc, argv, OLDPWD, HOME) == -1){
-            printf("Bush : cd : %s : No such directory\n", argv[1]);
+            perror(argv[1]);
             chdir(tmp);
         }
         else
@@ -159,6 +191,13 @@ void run(int jobno){
                 printf("%d \t %d \t %4d \t %s \n", jobs[i].pid, jobs[i].pgid, jobs[i].stat, jobs[i].cmd);
         }
     }
+    else if(!strcmp(argv[0], "fg")){
+        jobs[atoi(argv[1])].is_fg = 1; 
+        printf("before %d\n", jobs[atoi(argv[1])].pgid);
+        kill(jobs[atoi(argv[1])].pgid,SIGCONT);
+        printf("after\n");
+        tcsetpgrp(STDIN_FILENO, jobs[atoi(argv[1])].pgid);
+    }
     else if(!strcmp(argv[0], "ls")){
         // for(int i = 1; i < argc; i++){
         //     printf("%s ", argv[i]);
@@ -167,12 +206,8 @@ void run(int jobno){
         
         ls(argc, argv, HOME);
     }
-    else if(!strcmp(argv[0], "fg")){
-        int ret = setpgid(atoi(argv[1]), getpgid(getpid()));
-        printf("code %d\n", ret);
-    }
     else if(!strcmp(argv[0], "discover")){
-        discover(argc, argv);
+        discover(argc, argv, HOME);
     }
     else if(!strcmp(argv[0], "pinfo")){
         if(argc == 1){
@@ -209,7 +244,7 @@ void run(int jobno){
             printf("Thank you\n");
             for(int i = 0; i < number_of_jobs; i++){
                 if(jobs[i].stat != DONE && jobs[i].stat != KILLED){
-                    kill(jobs[i].pid, SIGKILL);
+                    kill(-jobs[i].pid, SIGKILL);
                 }
             }
             exit(0);
@@ -229,23 +264,36 @@ void run(int jobno){
             if(jobs[jobno].is_fg){
                 sigset_t set;
                 sigaddset(&set, SIGINT);
+                sigaddset(&set, SIGTSTP);
+                // sigaddset(&set, SIGSTOP);
                 sigprocmask(SIG_UNBLOCK, &set, NULL);
             }
             if(!jobs[jobno].is_fg)
                 setpgid(0, 0);
+                // perror("bush");
+                // tcsetpgrp(STDIN_FILENO, getpgrp());
+                // tcsetpgrp(STDOUT_FILENO, getpgrp());
+                // perror("bush");
             // if(jobs[jobno].is_fg)
             // tcsetpgrp(STDIN, getpid());
-            // printf("%d %d\n", getpid(), getpgid(getpid()));
+            // printf("%d %d %d\n",isatty(0), getpid(), getpgid(getpid()));
             execvp(argv[0], argv);
             printf("Bush : %s : Command not found\n", argv[0]);
             kill(getpid(), SIGTERM);
         }
         else{
-            // TODO: Handle signals
+            // TODO: Handle signals 
             // if(jobs[jobno].is_fg)
             //     tcsetpgrp(STDIN, pid);
+            if(jobs[jobno].is_fg){
+                jobs[jobno].pid = pid;
+                jobs[jobno].pgid = getpgid(pid);
+            }
             int status;
+            // printf("debug\n");
+            
             waitpid(pid, &status, WUNTRACED);
+            // printf("debug2 %d\n", status);
             // tcsetpgrp(STDIN, getpid());
         }
     }
@@ -272,11 +320,7 @@ void run_fg(){
 }
 
 void run_bg(){
-    struct sigaction new_action, old_action;
-    new_action.sa_handler = sigchld_handler;
-    new_action.sa_flags = 0 | SA_RESTART | SA_SIGINFO;
-    sigaction(SIGCHLD, &new_action, &old_action);
-
+    
     for(int i  = 0; i < number_of_jobs; i++){
         if(!jobs[i].is_fg && jobs[i].stat == READY){
             
@@ -307,37 +351,54 @@ void split(char* seq){
     for(int i = 0; i < no_of_cmds - 1; i++){
         // Create a job
         int ind = number_of_jobs;
-        // Do better
-        // for(int j = 0; j < MAX_JOBS; j++){
-        //     if(jobs[j].stat == DONE){
-        //         ind = j;
-        //         break;
-        //     }
-        // }
         jobs[ind] = create_job(0, READY, cmds[i]);
+        jobs[ind].input = stdin;
+        jobs[ind].output = stdout;
+        int istart = 0; int iend = 0;
+        for(int j = 0; cmds[i][j] != 0; j++){
+            if(cmds[i][j] == '<'){
+                istart = j+1;
+                for(iend = istart; cmds[i][iend] != 0 && cmds[i][iend] != '>'; iend++);
+                iend--;
+                break;
+            }
+        }
+        // printf("%d %d\n", istart, iend);
+        char* input_path = (char *)malloc((iend - istart + 2) * (sizeof(char)));
+        strncpy(input_path, &cmds[i][istart], iend - istart+1);
+        input_path[iend-istart+1] = 0;
+        trim(input_path, strlen(input_path));
+
+        int ostart = 0; int oend = 0;
+        for(int j = 0; cmds[i][j] != 0; j++){
+            if(cmds[i][j] == '>'){
+                ostart = j+1;
+                for(oend = ostart; cmds[i][oend] != 0 && cmds[i][oend] != '<'; oend++);
+                oend--;
+                break;
+            }
+        }
+        int append_flag = 0;
+        if(cmds[i][ostart] == '>'){
+            append_flag = 1;
+            ostart++;
+        }
+        // printf("%d %d\n", istart, iend);
+        char* output_path = (char *)malloc((oend - ostart + 2) * (sizeof(char)));
+        strncpy(output_path, &cmds[i][ostart], oend - ostart+1);
+        output_path[oend-ostart+1] = 0;
+        trim(output_path, strlen(output_path));
+        printf("%s\n", (input_path));
+        printf("%s\n", (output_path));
         number_of_jobs++;
-        // printf("%s\n", jobs[ind].cmd);
-        // pid_t pid = fork();
-        // pids[i] = pid;
-        // if(!pid){
-            
-        //     // Create child process
-        //     setpgid(0, 0);
-        //     struct sigaction new_action, old_action;
-        //     new_action.sa_handler = sigchld_handler;
-        //     sigaction(SIGCHLD, &new_action, &old_action);
-        //     run(cmds[i], 1);
-        //     kill(getpid(), SIGKILL);
-        // }
-        // else{
-        //     printf("+[%d] pid : %d\n", i+1, pid);
-        // }
     }
 
     // Create the one foreground process
     if(strlen(cmds[no_of_cmds - 1])){
         int ind = number_of_jobs;
         jobs[ind] = create_job(1, READY, cmds[no_of_cmds - 1]);
+        jobs[ind].input = stdin;
+        jobs[ind].output = stdout;
         number_of_jobs++;
     }
     // printf("%s\n", jobs[ind].cmd);
@@ -347,7 +408,7 @@ void split(char* seq){
 
 void check_done_bg(){
     for(int i = 0; i < number_of_jobs; i++){
-        if(jobs[i].stat == DONE && !jobs[i].status_printed && !jobs[i].is_fg){
+        if(jobs[i].stat == DONE && !jobs[i].status_printed){
             printf("[%d] Done %s exited ", i, jobs[i].cmd);
             jobs[i].status_printed = 1;
             if(!jobs[i].exit_code)
@@ -356,14 +417,18 @@ void check_done_bg(){
                 printf("abnormally with exitstatus %d\n", jobs[i].exit_code);
         }
         if(jobs[i].stat == STOPPED && !jobs[i].status_printed && !jobs[i].is_fg){
-            printf("[%d] Stopped %s\n", i, jobs[i].cmd);
+            printf("[%d] Stopped %s exit code: %d signal: %s\n", i, jobs[i].cmd, jobs[i].exit_code, strsignal(jobs[i].sig_code));
             jobs[i].status_printed = 1;
         }
         if(jobs[i].stat == KILLED && !jobs[i].status_printed && !jobs[i].is_fg){
-            printf("[%d] Killed %s\n", i, jobs[i].cmd);
+            printf("[%d] Killed %s exit code: %d Signal: %s\n", i, jobs[i].cmd, jobs[i].exit_code, strsignal(jobs[i].sig_code));
             jobs[i].status_printed = 1;
         }
     }
+}
+
+void makebg(){
+
 }
 
 int main(int argc, char** argv){
@@ -380,12 +445,27 @@ int main(int argc, char** argv){
         shell_mode = 0;
         input_file = fopen(argv[1], "r");
     }
-
-    tcsetpgrp(STDIN, getpid());
     setpgid(0, 0);
+    tcsetpgrp(STDIN, getpid());
+    
     sigset_t set;
     sigaddset(&set, SIGINT);
-    sigprocmask(SIG_BLOCK, &set, NULL);
+    sigaddset(&set, SIGTSTP);
+    // sigaddset(&set, SIGSTOP);
+    sigaddset(&set, SIGTTIN);
+    sigaddset(&set, SIGTTOU);
+    sigprocmask(SIG_SETMASK, &set, NULL);
+
+    struct sigaction new_action, old_action;
+    new_action.sa_handler = sigchld_handler;
+    new_action.sa_flags = 0 | SA_RESTART | SA_SIGINFO;
+    sigaction(SIGCHLD, &new_action, &old_action);
+
+    struct sigaction new_action2, old_action2;
+    new_action2.sa_handler = sigtstp_handler;
+    new_action2.sa_flags = 0;
+    
+    sigaction(SIGTSTP, &new_action2, &old_action2);
 
     number_of_jobs = 0;
     char command[COMMAND_SIZE + 1];
@@ -393,7 +473,8 @@ int main(int argc, char** argv){
     if(shell_mode)
         print_prompt();
 
-    while(take_string(input_file, command) != EOF){
+    // while(take_string(input_file, command) != EOF){
+    while(input_fancy(command, HOME) != EOF){
         int cmdlen = strlen(command);
         trim(command, cmdlen);
         char** sequence;
@@ -416,4 +497,10 @@ int main(int argc, char** argv){
     printf("\n");
     if(!shell_mode)
         fclose(input_file);
+    for(int i = 0; i < number_of_jobs; i++){
+        if(jobs[i].stat != DONE && jobs[i].stat != KILLED){
+            kill(jobs[i].pid, SIGKILL);
+        }
+    }
+    printf("\n");
 }

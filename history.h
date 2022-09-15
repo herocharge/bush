@@ -12,5 +12,6 @@
 
 void print_history(char* home);
 void update_history(char* cmd, char* home);
+void get_history(char* q, int n, char* home);
 
 #endif

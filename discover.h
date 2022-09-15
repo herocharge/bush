@@ -3,6 +3,7 @@
 
 #include "unistd.h"
 #include "string_utils.h"
+#include "path_utils.h"
 #include <assert.h>
 #include <stdio.h>
 #include <errno.h>
@@ -27,7 +28,7 @@
 #define MAX_PATH_SIZE 10000
 #define DEPTH_MAX 30
 
-void discover(int argc, char** argv);
+void discover(int argc, char** argv, char* home);
 
 
 #endif

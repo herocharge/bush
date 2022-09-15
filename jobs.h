@@ -24,7 +24,10 @@ typedef struct job{
     char* cmd;  // command to execute
     int status_printed;
     int exit_code;
-}Job;
+    int sig_code;
+    FILE* input;
+    FILE* output; // fds
+} Job;
 
 Job create_job(int is_fg, int stat, char* cmd);
 int kill_job(Job* jobs, int ind);

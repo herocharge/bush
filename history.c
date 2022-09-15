@@ -26,6 +26,28 @@ void print_history(char* home){
     }
 }
 
+void get_history(char* q, int n, char* home){
+    char** cmds;
+    char path[PATH_MAX+1];
+    strcpy(path, home);
+    strcat(path, "/.bush_history");
+    FILE* histfile = fopen(path, "r");
+    int no_of_cmds = 0;
+    char allcmd[(NO_OF_CMDS + 1)*(MAX_CMD_LEN)];
+    if(histfile != NULL){
+        take_string(histfile, allcmd);
+        no_of_cmds = tokenize(allcmd, strlen(allcmd), ';', &cmds);
+        no_of_cmds--;
+        fclose(histfile);
+    }
+    int start = max(0, no_of_cmds-10);
+    int end = min(no_of_cmds, start + 11);
+    // for(int i = start; i < end; i++){
+    //     printf("%s\n", cmds[i]);
+    // }
+    strcpy(q, cmds[NO_OF_CMDS - n]);
+}
+
 void update_history(char* cmd, char* home){
     if(strlen(cmd) == 0)return;
     // printf("cmd: %s\n", cmd);

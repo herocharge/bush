@@ -1,8 +1,9 @@
 CC = gcc
+# CFLAGS = -g -fsanitize=address
 CFLAGS = -g
 
-all: main.o string_utils.o echo.o cd.o jobs.o ls.o print_table.o path_utils.o discover.o pinfo.o history.o
-	$(CC) $(CFLAGS) main.o string_utils.o echo.o cd.o jobs.o ls.o print_table.o path_utils.o discover.o pinfo.o history.o -o bush
+all: main.o string_utils.o echo.o cd.o jobs.o ls.o print_table.o path_utils.o discover.o pinfo.o history.o input.o
+	$(CC) $(CFLAGS) main.o string_utils.o echo.o cd.o jobs.o ls.o print_table.o path_utils.o discover.o pinfo.o history.o input.o -o bush
 
 main.o: main.c string_utils.h string_utils.o
 	$(CC) $(CFLAGS) -c main.c
@@ -36,6 +37,9 @@ pinfo.o: pinfo.h pinfo.c
 
 history.o: history.h history.c
 	$(CC) $(CFLAGS) -c history.c
+
+input.o: input.h input.c
+	$(CC) $(CFLAGS) -c input.c
 
 clean:
 	rm *.o

@@ -22,7 +22,7 @@ char** insert(char** v, int len, char* s, int* cap){
 
 int is_dir(char* dir){
     struct stat sb;
-    if(stat(dir, &sb) == -1){
+    if(lstat(dir, &sb) == -1){
         perror(dir);
         return -1;
     }
@@ -53,7 +53,7 @@ void dfs(char* curr, int* no_of_files, char*** files, int* cap, int depth){
     closedir(d);
 }
 
-void discover(int argc, char** argv){
+void discover(int argc, char** argv, char* home){
     optind = 0;
     int flag;
     int dir_flag = 0 , file_flag = 0;
@@ -79,17 +79,28 @@ void discover(int argc, char** argv){
                 strcat(dir, "/");
                 if(!strncmp(argv[i], "./", 2)){
                     strcat(dir, &argv[i][2]);
+                   
                 }
                 else{
-                    strcat(dir, argv[i]);
+                    char* ne = expand(argv[i], home);
+                    if(strcmp(ne, argv[i]))
+                        strcpy(dir,ne);
+                    else
+                    strcat(dir, ne);
                 }
             }
             else 
                 strcpy(dir, argv[i]);
         }
     }
-    if(file == NULL)
-        file_flag = 1;
+    if(file_flag == 1 && dir_flag == 1){
+        file_flag = 0;
+        dir_flag = 0;
+    }
+    if(file == NULL){
+        // file_flag = 2;
+        
+    }
     else{
         // remove quotes
         int flen = strlen(file);
@@ -99,8 +110,10 @@ void discover(int argc, char** argv){
         strcpy(file, &dummy[1]);
         // printf("%s\n", file);
     }
-    
+    // printf("%d\n", file_flag);
     // printf("df: %d ff: %d\n", dir_flag, file_flag);
+    
+    // printf("%s\n", dir);
     char* fulldir = realpath(dir, NULL);
     char** files = init_arr(100);
     int no_of_files = 1;
@@ -108,19 +121,21 @@ void discover(int argc, char** argv){
     files = insert(files, 0, dir, &cap);
     dfs(dir, &no_of_files, &files, &cap, 0);
     for(int i = 0; i < no_of_files; i++){
-        if(file_flag){
-            if(is_dir(files[i])){
+        if(file == NULL){
+            if(!file_flag && is_dir(files[i])){
                 printf("%s/\n", files[i]);
             }
-            else {
-                printf("%s\n", files[i]);
+            else if(!dir_flag){
+                 printf("%s\n", files[i]);
             }
             continue;
         }
         else{
             int ind = 0;
             int len = strlen(file);
-            if((ind = is_substr(files[i], file))!=0 && (is_dir(files[i]) || !dir_flag)){
+            if((ind = is_substr(files[i], file))!=0){
+                if(is_dir(files[i]) && file_flag)continue;
+                if(!is_dir(files[i]) && dir_flag)continue;
                 for(int j = 0; files[i][j] != '\0'; j++){
                     if(ind - 1 == j)
                         printf("%s%s", COLOR_BOLD, KRED);
@@ -128,6 +143,8 @@ void discover(int argc, char** argv){
                     if(j == ind - 1 + len - 1)
                         printf("%s", COLOR_OFF);
                 }
+                if(is_dir(files[i]))
+                    printf("/");
                 printf("\n");
             }
             // printf("%d %s %s\n", ind, files[i], file);

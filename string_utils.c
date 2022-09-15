@@ -3,7 +3,28 @@
 int take_string(FILE* input_file, char* s){
     int ind = 0;
     int eof = EOF;
+    // setvbuf(input_file, NULL, _IONBF, 0);
     while(fscanf(input_file, "%c", &s[ind]) != EOF){
+        // printf("%c\n", s[ind]);
+        // if(s[ind] == '\033'){
+        //     fscanf(input_file, "%c", &s[ind]);
+        //     fscanf(input_file, "%c", &s[ind]);
+        //     switch(s[ind]) { // the real value
+        //         case 'A':
+        //             printf("up\n");
+        //             break;
+        //         case 'B':
+        //             printf("down\n");
+        //             break;
+        //         case 'C':
+        //             printf("right\n");
+        //             break;
+        //         case 'D':
+        //             printf("left\n");
+        //             break;
+        //     }
+        //     ind--;
+        // }
         if(s[ind] == '\n'){
             s[ind] = '\0';
             eof = 0;
@@ -118,7 +139,9 @@ char *str_replace(char *orig, char *rep, char *with) {
 int is_substr(char* text, char* pattern){
     int len1 = strlen(text);
     int len2 = strlen(pattern);
-    for(int i = 0; i < len1 - len2 + 1; i++){
+    int start = len1 - 1;
+    for(; text[start] != '/'; start--);
+    for(int i = start; i < len1 - len2 + 1; i++){
         int ok = 1;
         for(int j = 0; j < len2; j++){
             if(text[i + j] != pattern[j]){

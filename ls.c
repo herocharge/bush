@@ -10,7 +10,7 @@ int cmp(const void* a, const void* b){
 //race conditions galore
 
 
-char** get_info(struct stat sb, char* file, int* total){
+char** get_info(struct stat sb, char* file, int* total, char* parent){
     // printf("getting info of %s\n", file);
     // printf("getting 0\n");
     const int no_of_cols = 10;
@@ -19,8 +19,8 @@ char** get_info(struct stat sb, char* file, int* total){
     const int max_path_size = 1000;
     char perms[] = "----------";
     if(S_ISREG(sb.st_mode) )perms[0]='-'; // is it a regular file?
-    if(S_ISDIR(sb.st_mode) )perms[0]='d'; // directory?
     if(S_ISLNK(sb.st_mode) )perms[0]='l'; // symbolic link?  (Not in POSIX.1-1996.)
+    if(S_ISDIR(sb.st_mode) )perms[0]='d'; // directory?
     if(S_ISCHR(sb.st_mode) )perms[0]='c'; // character device?
     if(S_ISBLK(sb.st_mode) )perms[0]='b'; // block device?
     if(S_ISFIFO(sb.st_mode))perms[0]='p'; // FIFO (named pipe)?
@@ -93,10 +93,16 @@ char** get_info(struct stat sb, char* file, int* total){
     // printf("gotten\n");
     if(perms[0] == 'l'){
         char buf[max_path_size];
-        readlink(file, buf, max_path_size);
+        if(parent != NULL){
+            int sz = readlinkat(open(parent, __O_PATH), file, buf, max_path_size);
+            buf[sz] = 0;
+        }
+        else{
+            realpath(file, buf);
+        }
         data[9] = (char *)malloc(sizeof(char) * max_path_size);
-        sprintf(data[8], "%s%s%s", KCYN, file, KWHT);
-        sprintf(data[9], "-> %s%s%s", KBLU, buf, KWHT);
+        sprintf(data[8], "%s%s%s%s", COLOR_BOLD, KCYN, file, COLOR_OFF);
+        sprintf(data[9], "-> %s%s%s%s", COLOR_BOLD, KBLU, buf, COLOR_OFF);
     }
     else if(perms[0] == 'd'){
         sprintf(data[8], "%s%s%s%s/", COLOR_BOLD, KBLU, file, COLOR_OFF);
@@ -123,7 +129,7 @@ int actual_ls(char* file_name, int list_flag, int all_flag, char* home){
     file_name = expand(file_name, home);
     // printf("actual ls called for %s\n", file_name);
     struct stat statbuf;
-    if(stat(file_name, &statbuf) == -1){
+    if(lstat(file_name, &statbuf) == -1){
         perror(file_name);
         return -1;
         // printf("err1\n");
@@ -131,7 +137,7 @@ int actual_ls(char* file_name, int list_flag, int all_flag, char* home){
     Ls_data d;
     d.name = file_name;
     int dummy;
-    d.data = get_info(statbuf, d.name, &dummy);
+    d.data = get_info(statbuf, d.name, &dummy, NULL);
     int isdir = S_ISDIR(statbuf.st_mode);
     Ls_data* all = malloc((sizeof(Ls_data)) * MAX_NO_OF_FILES);
     // printf("%d\n", statbuf.st_nlink);
@@ -157,12 +163,12 @@ int actual_ls(char* file_name, int list_flag, int all_flag, char* home){
             strcpy(path, file_name);
             strcat(path, "/");
             strcat(path, all[ind].name);
-            if(stat(path, &statbuf) == -1){
+            if(lstat(path, &statbuf) == -1){
                 perror(path);
                 // printf("err2\n");
             }
             // printf("getting infoo..\n");
-            all[ind].data = get_info(statbuf, all[ind].name, &total);
+            all[ind].data = get_info(statbuf, all[ind].name, &total, file_name);
             // printf("got infoo\n");
             ind++;
         }
@@ -184,7 +190,7 @@ int actual_ls(char* file_name, int list_flag, int all_flag, char* home){
         // for(int i = 0;  i < len;i++){
         //     printf("%p\n", dirdata[i]);
         // }
-        int just[] = {0, 1, 0, 0, 1, 0, 1, 0, 0, 0};
+        int just[] = {0, 1, 0, 0, 1, 0, 1, 1, 0, 0};
         print_table(dirdata, ind, 10, just);
     }
     else{
