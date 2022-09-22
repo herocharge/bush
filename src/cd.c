@@ -1,4 +1,4 @@
-#include "cd.h"
+#include "../include/cd.h"
 
 int cd(int argc, char** argv, char* oldpwd, char* home){
     char** paths;

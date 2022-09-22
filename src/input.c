@@ -1,4 +1,4 @@
-#include "input.h"
+#include "../include/input.h"
 
 void die(const char *s) {
     perror(s);
@@ -130,13 +130,26 @@ int input_fancy(char* cmd, char* home) {
                     }
                 } 
                 else if (c == '\t') { // TAB character
-                    for(int k= 0; k < 8; k++){
-                        for(int i = len; i >= pt; i--){
-                            inp[i] = inp[i-1];
-                        }
-                        inp[pt++] = ' ';
-                        len++;
-                    }
+                    // for(int k= 0; k < 8; k++){
+                    //     for(int i = len; i >= pt; i--){
+                    //         inp[i] = inp[i-1];
+                    //     }
+                    //     inp[pt++] = ' ';
+                    //     len++;
+                    // }
+                    int start = pt-1;
+                    for(; start >= min_index && inp[start]!=' '; start--);
+                    start++;
+                    printf("%d %d\n", start, pt);
+                    // if(start != min_index){
+                        char* path = malloc(sizeof(char) * MAX_CMD_LEN);
+                        strncpy(path, &inp[start], pt-start+1);
+                            printf("%s\n", path);
+                        char* fullpath = getfullpath(path, home);
+                        if(fullpath)
+                            printf("%s\n", fullpath);
+                    // }
+                    // printf("%s", path);
                 } 
                 else if (c == 4) { // End of Transmission
                     printf("\r%s\n", inp);

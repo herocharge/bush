@@ -1,4 +1,4 @@
-#include "path_utils.h"
+#include "../include/path_utils.h"
 
 char* join(char** paths, int size){
     int len = 1;
@@ -46,4 +46,10 @@ char* expand(char* path, char* home){
         strcpy(big, path);
     }
     return big;
+}
+
+char* getfullpath(char* path, char* home){
+    int len = strlen(path);
+    path = str_replace(path, "~", home);
+    return realpath(path, NULL);
 }

@@ -1,4 +1,4 @@
-#include "jobs.h"
+#include "../include/jobs.h"
 
 Job create_job(int is_fg, int stat, char* cmd){
     Job job;

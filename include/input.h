@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "history.h"
+#include "path_utils.h"
 
 #define CSI "\e["
 int input_fancy(char* cmd, char* home);

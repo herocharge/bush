@@ -2,45 +2,45 @@ CC = gcc
 # CFLAGS = -g -fsanitize=address
 CFLAGS = -g
 
-all: main.o string_utils.o echo.o cd.o jobs.o ls.o print_table.o path_utils.o discover.o pinfo.o history.o input.o
-	$(CC) $(CFLAGS) main.o string_utils.o echo.o cd.o jobs.o ls.o print_table.o path_utils.o discover.o pinfo.o history.o input.o -o bush
+all: bin/main.o bin/string_utils.o bin/echo.o bin/cd.o bin/jobs.o bin/ls.o bin/print_table.o bin/path_utils.o bin/discover.o bin/pinfo.o bin/history.o bin/input.o
+	$(CC) $(CFLAGS) bin/main.o bin/string_utils.o bin/echo.o bin/cd.o bin/jobs.o bin/ls.o bin/print_table.o bin/path_utils.o bin/discover.o bin/pinfo.o bin/history.o bin/input.o -o bush
 
-main.o: main.c string_utils.h string_utils.o
-	$(CC) $(CFLAGS) -c main.c
+bin/main.o: src/main.c include/string_utils.h bin/string_utils.o
+	$(CC) $(CFLAGS) -c src/main.c -o bin/main.o
 
-cd.o: cd.h cd.c string_utils.h string_utils.o
-	$(CC) $(CFLAGS) -c cd.c
+bin/cd.o: include/cd.h src/cd.c include/string_utils.h bin/string_utils.o
+	$(CC) $(CFLAGS) -c src/cd.c -o bin/cd.o
 
-string_utils.o: string_utils.c string_utils.h
-	$(CC) $(CFLAGS) -c string_utils.c
+bin/string_utils.o: src/string_utils.c include/string_utils.h
+	$(CC) $(CFLAGS) -c src/string_utils.c -o bin/string_utils.o
 
-echo.o: echo.h echo.c
-	$(CC) $(CFLAGS) -c echo.c
+bin/echo.o: include/echo.h src/echo.c
+	$(CC) $(CFLAGS) -c src/echo.c -o bin/echo.o
 
-jobs.o: jobs.h jobs.c
-	$(CC) $(CFLAGS) -c jobs.c
+bin/jobs.o: include/jobs.h src/jobs.c
+	$(CC) $(CFLAGS) -c src/jobs.c -o bin/jobs.o
 
-ls.o: ls.h ls.c
-	$(CC) $(CFLAGS) -c ls.c
+bin/ls.o: include/ls.h src/ls.c
+	$(CC) $(CFLAGS) -c src/ls.c -o bin/ls.o
 
-print_table.o: print_table.h print_table.c
-	$(CC) $(CFLAGS) -c print_table.c
+bin/print_table.o: include/print_table.h src/print_table.c
+	$(CC) $(CFLAGS) -c src/print_table.c -o bin/print_table.o
 
-path_utils.o: path_utils.h path_utils.c
-	$(CC) $(CFLAGS) -c path_utils.c
+bin/path_utils.o: include/path_utils.h src/path_utils.c
+	$(CC) $(CFLAGS) -c src/path_utils.c -o bin/path_utils.o
 
-discover.o: discover.h discover.c
-	$(CC) $(CFLAGS) -c discover.c
+bin/discover.o: include/discover.h src/discover.c
+	$(CC) $(CFLAGS) -c src/discover.c -o bin/discover.o
 
-pinfo.o: pinfo.h pinfo.c
-	$(CC) $(CFLAGS) -c pinfo.c
+bin/pinfo.o: include/pinfo.h src/pinfo.c
+	$(CC) $(CFLAGS) -c src/pinfo.c -o bin/pinfo.o
 
-history.o: history.h history.c
-	$(CC) $(CFLAGS) -c history.c
+bin/history.o: include/history.h src/history.c
+	$(CC) $(CFLAGS) -c src/history.c -o bin/history.o
 
-input.o: input.h input.c
-	$(CC) $(CFLAGS) -c input.c
+bin/input.o: include/input.h src/input.c
+	$(CC) $(CFLAGS) -c src/input.c -o bin/input.o
 
 clean:
-	rm *.o
+	rm bin/*.o
 	rm bush

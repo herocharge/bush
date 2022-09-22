@@ -1,4 +1,4 @@
-#include "discover.h"
+#include "../include/discover.h"
 
 char** init_arr(int sz){
     char ** v = (char **)malloc(sizeof(char *) * sz);

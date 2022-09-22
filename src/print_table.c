@@ -1,4 +1,4 @@
-#include "print_table.h"
+#include "../include/print_table.h"
 
 int max(int a, int b){
     if( a < b) return b;

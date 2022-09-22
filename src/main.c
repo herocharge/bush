@@ -8,15 +8,15 @@
 #include <fcntl.h>
 #include <signal.h>
 
-#include "string_utils.h"
-#include "echo.h"
-#include "cd.h"
-#include "jobs.h"
-#include "ls.h"
-#include "discover.h"
-#include "pinfo.h"
-#include "input.h"
-#include "history.h"
+#include "../include/string_utils.h"
+#include "../include/echo.h"
+#include "../include/cd.h"
+#include "../include/jobs.h"
+#include "../include/ls.h"
+#include "../include/discover.h"
+#include "../include/pinfo.h"
+#include "../include/input.h"
+#include "../include/history.h"
 // #include "jobs.h"
 
 #define STDIN 0

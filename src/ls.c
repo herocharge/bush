@@ -1,4 +1,4 @@
-#include "ls.h"
+#include "../include/ls.h"
 
 int cmp(const void* a, const void* b){
     Ls_data* x = (Ls_data *)a;

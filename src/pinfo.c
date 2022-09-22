@@ -1,4 +1,4 @@
-#include "pinfo.h"
+#include "../include/pinfo.h"
 
 void pinfo(int argc, int pid){
     char pid_s[10];

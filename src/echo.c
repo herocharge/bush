@@ -1,4 +1,4 @@
-#include "echo.h"
+#include "../include/echo.h"
 
 void echo(int argc, char** argv){
     int start = 1;

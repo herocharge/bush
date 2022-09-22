@@ -4,7 +4,8 @@
         "stdlib.h": "c",
         "pwd.h": "c",
         "wait.h": "c",
-        "unistd.h": "c"
+        "unistd.h": "c",
+        "pinfo.h": "c"
     },
     "C_Cpp.default.configurationProvider": "ms-vscode.makefile-tools"
 }

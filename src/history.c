@@ -1,4 +1,4 @@
-#include "history.h"
+#include "../include/history.h"
 
 int min(int a, int b){
     if(a < b)return a;

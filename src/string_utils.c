@@ -1,4 +1,4 @@
-#include "string_utils.h"
+#include "../include/string_utils.h"
 
 int take_string(FILE* input_file, char* s){
     int ind = 0;
