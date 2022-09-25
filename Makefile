@@ -1,6 +1,6 @@
 CC = gcc
-# CFLAGS = -g -fsanitize=address
-CFLAGS = -g
+CFLAGS = -g -fsanitize=address
+# CFLAGS = -g
 
 all: bin/main.o bin/string_utils.o bin/echo.o bin/cd.o bin/jobs.o bin/ls.o bin/print_table.o bin/path_utils.o bin/discover.o bin/pinfo.o bin/history.o bin/input.o
 	$(CC) $(CFLAGS) bin/main.o bin/string_utils.o bin/echo.o bin/cd.o bin/jobs.o bin/ls.o bin/print_table.o bin/path_utils.o bin/discover.o bin/pinfo.o bin/history.o bin/input.o -o bush

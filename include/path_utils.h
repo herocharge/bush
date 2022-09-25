@@ -9,5 +9,6 @@ char* expand(char* path, char* home);
 char* join(char** paths, int size);
 char* parent(char* path);
 char* getfullpath(char* path, char* home);
+char* getfilename(char* path);
 
 #endif

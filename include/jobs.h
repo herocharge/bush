@@ -25,6 +25,7 @@ typedef struct job{
     int status_printed;
     int exit_code;
     int sig_code;
+    int hide;
     FILE* input;
     FILE* output; // fds
 } Job;

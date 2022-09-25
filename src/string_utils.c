@@ -154,3 +154,17 @@ int is_substr(char* text, char* pattern){
     }
     return 0;
 }
+
+int is_prefix(char* text, char* pattern){
+    int ok = 1;
+    int i;
+    for(i = 0; text[i] != 0 && pattern[i] != 0; i++){
+        if(text[i] != pattern[i]){
+            ok = 0;
+            break;
+        }
+    }
+    if(pattern[i] != 0)
+        ok = 0;
+    return ok;
+}

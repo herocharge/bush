@@ -28,7 +28,16 @@ char* parentpath(char* path){
     if(!strlen(p))p[0] = '.';
     return p;
 }
-
+char* getdir(char* path){
+    int len = strlen(path);
+    char* p = strdup(path);
+    for(int i = len-1;i>=0;i--){
+        if(p[i] == '/')break;
+        p[i] = 0;
+    }
+    if(!strlen(p))p[0] = '.';
+    return p;
+}
 char* expand(char* path, char* home){
     char** tokens;
     int len = strlen(path);
@@ -51,5 +60,14 @@ char* expand(char* path, char* home){
 char* getfullpath(char* path, char* home){
     int len = strlen(path);
     path = str_replace(path, "~", home);
-    return realpath(path, NULL);
+    char* dirpath = getdir(path);
+    return realpath(dirpath, NULL);
+}
+
+char* getfilename(char* path){
+    int start = strlen(path);
+    for(start = start - 1; start >= 0 && path[start] != '/'; start--);
+    char* fname = strdup(path);
+    start++;
+    strcpy(fname, &path[start]);
 }
