@@ -4,6 +4,6 @@
 #include <stdio.h>
 #include <string.h>
 
-void echo(int argc, char** argv, FILE* inp, FILE* out);
+void echo(int argc, char** argv);
 
 #endif

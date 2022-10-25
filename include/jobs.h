@@ -33,5 +33,6 @@ typedef struct job{
 Job create_job(int is_fg, int stat, char* cmd);
 int kill_job(Job* jobs, int ind);
 void free_job(Job job);
+char* statstr(int stat);
 
 #endif

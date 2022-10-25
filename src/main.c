@@ -1,3 +1,5 @@
+// imperative programming sucks
+
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -53,72 +55,42 @@ int number_of_jobs;
 double latest_exit_time = 0;
 int warning_exit = 0;
 
-void sigchld_handler(int sig, siginfo_t *info, void *ucontext)
-{
-    pid_t pid;
-    int status;
-    // printf("sigchld: %d\n", info->si_pid);
-    // printf("%d\n", WEXITSTATUS(status));
-    // printf("%d\n", info->si_status);
-    // printf("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n");
-    // printf("sighndlr: %d\n", info->si_code);
-    // if(jobs[pidtojid[info->si_pid]].is_fg){
-    //     tcsetpgrp(STDIN_FILENO, getpgrp());
-    //     tcsetpgrp(STDOUT_FILENO, getpgrp());
-    // }
-    while((pid = waitpid(-1, &status, WNOHANG)) > 0){
-        if(jobs[pidtojid[pid]].is_fg){
-            // tcsetpgrp(0, getpgrp());
-        }
-        // printf("dead : %d\n", pid);
-        // printf("status: %d\n", status);
-        // printf("sighndlr: %d\n", info->si_code);
-        if(WIFEXITED(status)){
-            // printf("done\n");
-            jobs[pidtojid[pid]].stat = DONE;
-            printf("done\n");
-            
-        }
-        if(WIFSTOPPED(status)){
-            // printf("stopped\n");
-            jobs[pidtojid[pid]].stat = STOPPED;
-            jobs[pidtojid[pid]].is_fg = 0;
-            printf("[%d] %d\n", pidtojid[pid], pid);
-            
-        }
-        if(info->si_status == SIGTSTP){
-            // printf("stopped\n");
-            jobs[pidtojid[pid]].stat = STOPPED;
-            jobs[pidtojid[pid]].is_fg = 0;
-            printf("[%d] %d\n", pidtojid[pid], pid);
-            
-        }
-        if(WIFSIGNALED(status)){
-            jobs[pidtojid[pid]].stat = KILLED;
-            printf("[%d] Killed %d\n", pidtojid[pid], pid);
-        }
-        // printf("%d\n", jobs[pidtojid[pid]].stat);
-        // printf("jid: %d\n", pidtojid[pid]);
-        jobs[pidtojid[pid]].status_printed = 0;
-        jobs[pidtojid[pid]].exit_code = WEXITSTATUS(status);
-        jobs[pidtojid[pid]].sig_code = info->si_status;
-        
+
+void sigchld_handler2(int sigy, siginfo_t *info, void *ucontext){
+    // printf("%d %d \n", info->si_value.sival_int, info->si_pid);
+    int pid, status;
+    while((pid = waitpid(-1, &status, WNOHANG)) > 0); // just to reap zombies
+    pid = info->si_pid;
+    int jid = pidtojid[pid];
+    if(jobs[jid].is_fg && info->si_value.sival_int != SIGCONT){
+        // printf("entrer\n");
+        tcsetpgrp(STDIN_FILENO, getpgrp());
+        tcsetpgrp(STDOUT_FILENO, getpgrp());
     }
-    if(pid <= 0){
-        if(info->si_status == SIGTTOU || info->si_status == SIGTSTP){
-            jobs[pidtojid[info->si_pid]].stat = STOPPED;
-            jobs[pidtojid[info->si_pid]].is_fg = 0;
-            printf("[%d] %d\n", pidtojid[info->si_pid], info->si_pid);
-            jobs[pidtojid[info->si_pid]].status_printed = 0;
-            jobs[pidtojid[info->si_pid]].exit_code = status;
-            jobs[pidtojid[info->si_pid]].sig_code = info->si_code;
-        }
-        jobs[pidtojid[info->si_pid]].exit_code = info->si_code;
-        jobs[pidtojid[info->si_pid]].sig_code = info->si_status;
+    
+    // jobs[jid].is_fg = 0;
+    // printf("1\n");
+    // jobs[jid].pid = pid;
+    // jobs[jid].pgid = info->si_gid;
+    jobs[jid].exit_code = info->si_status;
+    jobs[jid].sig_code = info->si_value.sival_int;
+    if(jobs[jid].sig_code != SIGCONT){
+        jobs[jid].status_printed = 0;
+        int sig = jobs[jid].exit_code;
+        if(sig == SIGTTOU || sig == SIGTTIN || sig == SIGSTOP || sig == SIGTSTP)
+            jobs[jid].stat = STOPPED;
+        else if( sig ==  SIGALRM  ||  sig == SIGHUP   || sig == SIGINT   || sig == SIGIO    || sig == SIGKILL  ||  sig == SIGPIPE || sig == SIGPOLL  || sig == SIGPROF  || sig == SIGPWR   || sig == SIGSTKFLT|| sig == SIGTERM  || sig == SIGUSR1  || sig == SIGUSR2  || sig == SIGVTALRM)
+            jobs[jid].stat = KILLED;
+        else
+            jobs[jid].stat = DONE; 
     }
-    //     printf("pid:  %d\n", pid);
-    //     printf("status: %d\n", info->si_status);
-    // printf("sigchld triggered\n");
+    else{
+        jobs[jid].status_printed = 1;
+        jobs[jid].stat = RUNNING; 
+    }
+    // exit(0);
+    // jobs[jid].stat = 10;
+    // printf("%d %s %d %d", pid, jobs[jid].cmd, jid, jobs[jid].stat);
 }
 
 void sigtstp_handler(int sig){
@@ -155,7 +127,7 @@ void print_prompt(){
 
 void run(int jobno, int infd, int outfd){
     // printf("Currently running: %s, with pid: %d id fg? %d\n", jobs[jobno].cmd, jobs[jobno].pid, jobs[jobno].is_fg);
-
+    // printf("is_fg: %d\n", jobs[jobno].is_fg);
     char** argvb = NULL;
     int cmdlen = strlen(jobs[jobno].cmd);
     int argc = tokenize(jobs[jobno].cmd, cmdlen, ' ', &argvb);
@@ -276,12 +248,12 @@ void run(int jobno, int infd, int outfd){
     argv[argc] = NULL;
     jobs[jobno].input = fdopen(inputfd, "r");
     jobs[jobno].output = fdopen(outputfd, "w");
-    printf("%d\n", fileno(jobs[jobno].output));
-    printf("%d %d %s\n", inputfd, outputfd, argv[0]);
+    // printf("%d\n", fileno(jobs[jobno].output));
+    // printf("%d %d %s\n", inputfd, outputfd, argv[0]);
     if(!strlen(argv[0]))return;
-    if(!strcmp(argv[0], "echo")){
-            echo(argc, argv, jobs[jobno].input, jobs[jobno].output);
-        }
+    // if(!strcmp(argv[0], "echo")){
+        //     echo(argc, argv, jobs[jobno].input, jobs[jobno].output);
+        // }
     else if(!strcmp(argv[0], "cd")){
         if(argc > 2){
             printf("BUSH : cd : Only one arg\n");
@@ -295,81 +267,144 @@ void run(int jobno, int infd, int outfd){
         }
         else
             strcpy(OLDPWD, tmp);
+        jobs[jobno].stat = DONE;
     } 
-    else if(!strcmp(argv[0], "pwd")){
-        char pwd[PWD_SIZE];
-        getcwd(pwd, PWD_SIZE);
-        printf("%s\n", pwd);
-    }  
-    else if(!strcmp(argv[0], "jobs")){
-        printf("PID \t PGID \t STAT \t CMD\n");
-        for(int i =0;i < number_of_jobs;i++){
-                // if(jobs[i].stat == DONE)continue;
-                printf("%d \t %d \t %4d \t %s \n", jobs[i].pid, jobs[i].pgid, jobs[i].stat, jobs[i].cmd);
-        }
-    }
     else if(!strcmp(argv[0], "fg")){
-        jobs[atoi(argv[1])].is_fg = 1; 
-        printf("before %d\n", jobs[atoi(argv[1])].pgid);
-        kill(jobs[atoi(argv[1])].pgid,SIGCONT);
-        printf("after\n");
-        tcsetpgrp(STDIN_FILENO, jobs[atoi(argv[1])].pgid);
+        if(argv[1] == NULL){
+            printf("fg: Usage: fg <job no>\n");
+            jobs[jobno].stat = DONE;
+            return;
+        }
+        int jid = atoi(argv[1]);
+        if(jid >= number_of_jobs || jobs[jid].stat == KILLED || jobs[jid].stat == DONE){
+            printf("fg: invalid job number\n");
+            jobs[jobno].stat = DONE;
+            return;
+        }
+        if(jobs[jid].stat == STOPPED || jobs[jid].stat == RUNNING){
+            jobs[jid].is_fg = 1;
+            int pid = jobs[jid].pid;
+            // printf("before %d %d\n", pid,getpgid(pid));
+            tcsetpgrp(STDIN_FILENO, pid);
+            tcsetpgrp(STDOUT_FILENO, pid);
+            kill(-pid, SIGCONT);
+            // tcsetpgrp(STDIN_FILENO, getpgid(pid));
+            // tcsetpgrp(STDOUT_FILENO, getpgid(pid));
+            int status;
+            waitpid(pid, &status, WUNTRACED);
+            
+            
+            // kill(jobs[atoi(argv[1])].pid, SIGCONT);
+            // printf("after\n");
+            jobs[jobno].stat = DONE;
+        }
+        jobs[jobno].stat = DONE;
     }
-    else if(!strcmp(argv[0], "ls")){
-        // for(int i = 1; i < argc; i++){
-        //     printf("%s ", argv[i]);
-        // }
-        // printf("\n");
+    else if(!strcmp(argv[0], "bg")){
+        if(argv[1] == NULL){
+            printf("bg: Usage: bg <job no>\n");
+            jobs[jobno].stat = DONE;
+            return;
+        }
+        int jid = atoi(argv[1]);
+        jobs[jid].is_fg = 0;
+        if(jid >= number_of_jobs){
+            printf("bg: invalid job number\n");
+            jobs[jobno].stat = DONE;
+            return;
+        }
+        int pid = jobs[jid].pid;
+        kill(-pid, SIGCONT);
+        jobs[jobno].stat = DONE;
+    }
+    else if(!strcmp(argv[0], "sig")){
+        if(argv[1] == NULL || argv[2] == NULL){
+            printf("sig: Usage: bg <job no> <sig no>\n");
+            printf("Refer to signal(7) for the signal codes\n");
+            jobs[jobno].stat = DONE; 
+            return;
+        }
+        int jid = atoi(argv[1]);
+        int sno = atoi(argv[2]);
+        kill(-jobs[jid].pid, sno);
+        perror("sig");
+        jobs[jobno].stat = DONE; 
+    }
+            
+    // else if(!strcmp(argv[0], "pwd")){
+    //     char pwd[PWD_SIZE];
+    //     getcwd(pwd, PWD_SIZE);
+    //     printf("%s\n", pwd);
+    // }  
+    // else if(!strcmp(argv[0], "jobs")){
+    //     printf("PID \t PGID \t STAT \t CMD\n");
+    //     for(int i =0;i < number_of_jobs;i++){
+    //             // if(jobs[i].stat == DONE)continue;
+    //             printf("%d \t %d \t %4d \t %s \n", jobs[i].pid, jobs[i].pgid, jobs[i].stat, jobs[i].cmd);
+    //     }
+    // }
+    // else if(!strcmp(argv[0], "fg")){
+    //     jobs[atoi(argv[1])].is_fg = 1; 
+    //     printf("before %d\n", jobs[atoi(argv[1])].pgid);
+    //     kill(jobs[atoi(argv[1])].pgid,SIGCONT);
+    //     printf("after\n");
+    //     tcsetpgrp(STDIN_FILENO, jobs[atoi(argv[1])].pgid);
+    // }
+    // else if(!strcmp(argv[0], "ls")){
+    //     // for(int i = 1; i < argc; i++){
+    //     //     printf("%s ", argv[i]);
+    //     // }
+    //     // printf("\n");
         
-        ls(argc, argv, HOME);
-    }
-    else if(!strcmp(argv[0], "discover")){
-        discover(argc, argv, HOME);
-    }
-    else if(!strcmp(argv[0], "pinfo")){
-        if(argc == 1){
-            pinfo(2, getpid());
-        }
-        else{
-            pinfo(2, atoi(argv[1]));
-        }
-    }
-    else if(!strcmp(argv[0], "exit")){
-        if(!warning_exit){
-            int not_dead = 0;
-            for(int i = 0; i < number_of_jobs; i++){
-                if(jobs[i].stat != DONE && jobs[i].stat != KILLED && jobs[i].pid != getpid()){
-                    not_dead = 1;
-                    break;
-                }
-            }
-            if(not_dead){
-                warning_exit = 1;
-                printf("There are still some processes running, You sure you wanna exit?\n");
-            }
-            else{
-                printf("Thank you\n");
-            for(int i = 0; i < number_of_jobs; i++){
-                if(jobs[i].stat != DONE && jobs[i].stat != KILLED){
-                    kill(jobs[i].pid, SIGKILL);
-                }
-            }
-            exit(0);
-            }
-        }
-        else{
-            printf("Thank you\n");
-            for(int i = 0; i < number_of_jobs; i++){
-                if(jobs[i].stat != DONE && jobs[i].stat != KILLED){
-                    kill(-jobs[i].pid, SIGKILL);
-                }
-            }
-            exit(0);
-        }
-    }
-    else if(!strcmp(argv[0], "history")){
-        print_history(HOME);
-    }
+    //     ls(argc, argv, HOME);
+    // }
+    // else if(!strcmp(argv[0], "discover")){
+    //     discover(argc, argv, HOME);
+    // }
+    // else if(!strcmp(argv[0], "pinfo")){
+    //     if(argc == 1){
+    //         pinfo(2, getpid());
+    //     }
+    //     else{
+    //         pinfo(2, atoi(argv[1]));
+    //     }
+    // }
+    // else if(!strcmp(argv[0], "exit")){
+    //     if(!warning_exit){
+    //         int not_dead = 0;
+    //         for(int i = 0; i < number_of_jobs; i++){
+    //             if(jobs[i].stat != DONE && jobs[i].stat != KILLED && jobs[i].pid != getpid()){
+    //                 not_dead = 1;
+    //                 break;
+    //             }
+    //         }
+    //         if(not_dead){
+    //             warning_exit = 1;
+    //             printf("There are still some processes running, You sure you wanna exit?\n");
+    //         }
+    //         else{
+    //             printf("Thank you\n");
+    //         for(int i = 0; i < number_of_jobs; i++){
+    //             if(jobs[i].stat != DONE && jobs[i].stat != KILLED){
+    //                 kill(jobs[i].pid, SIGKILL);
+    //             }
+    //         }
+    //         exit(0);
+    //         }
+    //     }
+    //     else{
+    //         printf("Thank you\n");
+    //         for(int i = 0; i < number_of_jobs; i++){
+    //             if(jobs[i].stat != DONE && jobs[i].stat != KILLED){
+    //                 kill(-jobs[i].pid, SIGKILL);
+    //             }
+    //         }
+    //         exit(0);
+    //     }
+    // }
+    // else if(!strcmp(argv[0], "history")){
+    //     print_history(HOME);
+    // }
     else{
         int backupstdin = dup(infd);
         int backupstdout = dup(outfd);
@@ -378,6 +413,7 @@ void run(int jobno, int infd, int outfd){
             pid = fork();
             // printf("Forked...\n");
         } 
+        
         if(!pid){
             // close(STDIN);
             // close(STDOUT);
@@ -386,6 +422,15 @@ void run(int jobno, int infd, int outfd){
                 sigset_t set;
                 sigaddset(&set, SIGINT);
                 sigaddset(&set, SIGTSTP);
+                // sigaddset(&set, SIGSTOP);
+                sigprocmask(SIG_UNBLOCK, &set, NULL);
+            }
+            if(!jobs[jobno].is_fg){
+                sigset_t set;
+                sigaddset(&set, SIGINT);
+                sigaddset(&set, SIGTSTP);
+                sigaddset(&set, SIGTTOU);
+                sigaddset(&set, SIGTTIN);
                 // sigaddset(&set, SIGSTOP);
                 sigprocmask(SIG_UNBLOCK, &set, NULL);
             }
@@ -412,18 +457,110 @@ void run(int jobno, int infd, int outfd){
             // if(jobs[jobno].is_fg)
             // tcsetpgrp(STDIN, getpid());
             // printf("%d %d %d\n",isatty(0), getpid(), getpgid(getpid()));
-            execvp(argv[0], argv);
-            printf("Bush : %s : Command not found\n", argv[0]);
-            kill(getpid(), SIGTERM);
+            if(!strcmp(argv[0], "echo")){
+                echo(argc, argv);
+            }
+            else if(!strcmp(argv[0], "pwd")){
+            char pwd[PWD_SIZE];
+            getcwd(pwd, PWD_SIZE);
+            printf("%s\n", pwd);
+            }  
+            else if(!strcmp(argv[0], "jobs")){
+                int run_flag = 0, stop_flag = 0;
+                if(argc > 1){
+                    if(!strcmp(argv[1], "-r")){
+                        run_flag = 1;
+                    }
+                    if(!strcmp(argv[1], "-s")){
+                        stop_flag = 1;
+                    }
+                }
+                printf("JID \t PID \t PGID \t STAT \t\t CMD\n");
+                for(int i =0;i < number_of_jobs;i++){
+                    // if(jobs[i].hide)continue;
+                    if(run_flag && jobs[i].stat != RUNNING)continue;
+                    if(stop_flag && jobs[i].stat != STOPPED)continue;
+                    printf("%d \t %d \t %d \t %s \t %s \n",i, jobs[i].pid, jobs[i].pgid, statstr(jobs[i].stat), jobs[i].cmd);
+                }
+            }
+            
+            else if(!strcmp(argv[0], "ls")){
+            // for(int i = 1; i < argc; i++){
+            //     printf("%s ", argv[i]);
+            // }
+            // printf("\n");
+
+            ls(argc, argv, HOME);
+            }
+            else if(!strcmp(argv[0], "discover")){
+            discover(argc, argv, HOME);
+            }
+            else if(!strcmp(argv[0], "pinfo")){
+            if(argc == 1){
+            pinfo(2, getpid());
+            }
+            else{
+            pinfo(2, atoi(argv[1]));
+            }
+            }
+            else if(!strcmp(argv[0], "exit")){
+            if(!warning_exit){
+            int not_dead = 0;
+            for(int i = 0; i < number_of_jobs; i++){
+                if(jobs[i].stat != DONE && jobs[i].stat != KILLED && jobs[i].pid != getpid()){
+                    not_dead = 1;
+                    break;
+                }
+            }
+            if(not_dead){
+                warning_exit = 1;
+                printf("There are still some processes running, You sure you wanna exit?\n");
+            }
+            else{
+                printf("Thank you\n");
+            for(int i = 0; i < number_of_jobs; i++){
+                if(jobs[i].stat != DONE && jobs[i].stat != KILLED){
+                    kill(jobs[i].pid, SIGKILL);
+                }
+            }
+            exit(0);
+            }
+            }
+            else{
+            printf("Thank you\n");
+            for(int i = 0; i < number_of_jobs; i++){
+                if(jobs[i].stat != DONE && jobs[i].stat != KILLED){
+                    kill(-jobs[i].pid, SIGKILL);
+                }
+            }
+            exit(0);
+            }
+            }
+            else if(!strcmp(argv[0], "history")){
+            print_history(HOME);
+            }
+            else{
+                execvp(argv[0], argv);
+                printf("Bush : %s : Command not found\n", argv[0]);
+            }
+            close(infd);
+            dup2(backupstdin, infd);
+            close(backupstdin);
+            close(outfd);
+            dup2(backupstdout, outfd);
+            close(backupstdout);
+            exit(0);
         }
         else{
             // TODO: Handle signals 
-            if(jobs[jobno].is_fg){
-                jobs[jobno].pid = pid;
-                jobs[jobno].pgid = getpgid(pid);
-            }
+            jobs[jobno].pid = pid;
+            jobs[jobno].pgid = pid;
+            pidtojid[pid] = jobno;
             int status;
+            
             waitpid(pid, &status, WUNTRACED);
+            
+            // printf("pid: %d\n", pid);
             close(infd);
             dup2(backupstdin, infd);
             close(backupstdin);
@@ -436,7 +573,7 @@ void run(int jobno, int infd, int outfd){
                 // tcsetpgrp(STDIN, pid);
                 // printf("%d\n", tcgetpgrp(STDIN));
             }
-            jobs[jobno].is_fg = 0;
+            // jobs[jobno].is_fg = 0;
             if(jobs[jobno].stat == STOPPED && !jobs[jobno].status_printed ){
                 printf("[%d] Stopped %s exit code: %d signal: %s\n", jobno, jobs[jobno].cmd, jobs[jobno].exit_code, strsignal(jobs[jobno].sig_code));
                 jobs[jobno].status_printed = 1;
@@ -452,6 +589,7 @@ void run(int jobno, int infd, int outfd){
             // tcsetpgrp(STDIN, getpid());
         }
     }
+    
     // exit(0);
     // destroy_tokens(argv, argc);
 }
@@ -463,6 +601,7 @@ void pipeline(int jno){
         run(jno, STDIN, STDOUT);
         return;
     }
+    jobs[jno].hide = 1;
     int backupstdin = dup(STDIN);
     int backupstdout = dup(STDOUT);
     int lpipe[2]; // i-1 -> i
@@ -473,7 +612,7 @@ void pipeline(int jno){
     jobs[ind] = create_job(jobs[jno].is_fg, RUNNING, cmds[0]);
     jobs[ind].input = stdin;
     jobs[ind].output = stdout;
-    jobs[ind].hide = 1;
+    
     number_of_jobs++;
     run(ind, STDIN, rpipe[1]);
     // if(!fork()){
@@ -552,20 +691,20 @@ void run_fg(){
             jobs[i].pid = getpid();
             jobs[i].pgid = getpgid(jobs[i].pid);
             pidtojid[jobs[i].pid] = i;
+            // printf("jid: %d\n", pidtojid[jobs[i].pid]);
             time_t start,end;
             time (&start);
             // run(i, 0, 1);
             pipeline(i);
             time (&end);
             latest_exit_time = difftime(end, start); 
-            jobs[i].stat = DONE; // Reached for every command
+            // jobs[i].stat = DONE; // Reached for every command
             break;
         }
     }   
 }
 
 void run_bg(){
-    
     for(int i  = 0; i < number_of_jobs; i++){
         if(!jobs[i].is_fg && jobs[i].stat == READY){
             
@@ -576,7 +715,7 @@ void run_bg(){
                 printf("[%d] %d\n", i, getpid());
                 // run(i, 0, 1); 
                 pipeline(i);
-                jobs[i].stat = DONE; // Only reached for builtins
+                // jobs[i].stat = DONE; // Only reached for builtins
                 exit(0);
             }
             else{
@@ -607,6 +746,7 @@ void split(char* seq){
         jobs[ind] = create_job(1, READY, cmds[no_of_cmds - 1]);
         jobs[ind].input = stdin;
         jobs[ind].output = stdout;
+        jobs[ind].hide = 0;
         number_of_jobs++;
     }
     // printf("%s\n", jobs[ind].cmd);
@@ -616,7 +756,7 @@ void split(char* seq){
 
 void check_done_bg(){
     for(int i = 0; i < number_of_jobs; i++){
-        if(jobs[i].stat == DONE && !jobs[i].status_printed){
+        if(jobs[i].stat == DONE && !jobs[i].status_printed && jobs[i].is_fg != 1){
             printf("[%d] Done %s exited ", i, jobs[i].cmd);
             jobs[i].status_printed = 1;
             if(!jobs[i].exit_code)
@@ -635,9 +775,6 @@ void check_done_bg(){
     }
 }
 
-void makebg(){
-
-}
 
 int main(int argc, char** argv){
     pid_t sess_id = setsid();
@@ -665,7 +802,7 @@ int main(int argc, char** argv){
     sigprocmask(SIG_SETMASK, &set, NULL);
 
     struct sigaction new_action, old_action;
-    new_action.sa_handler = sigchld_handler;
+    new_action.sa_handler = sigchld_handler2;
     new_action.sa_flags = 0 | SA_RESTART | SA_SIGINFO;
     sigaction(SIGCHLD, &new_action, &old_action);
 
@@ -685,6 +822,7 @@ int main(int argc, char** argv){
     while(input_fancy(command, HOME) != EOF){
         int cmdlen = strlen(command);
         trim(command, cmdlen);
+        // printf("cmd: |%s|\n", command);
         char** sequence;
         int seq_len = tokenize(command, strlen(command), ';', &sequence);
         for(int i = 0; i < seq_len; i++){
@@ -700,6 +838,7 @@ int main(int argc, char** argv){
         }
         if(shell_mode)
             print_prompt();
+        // printf("fuck\n");
         // destroy_tokens(sequence, seq_len);
     }
     printf("\n");

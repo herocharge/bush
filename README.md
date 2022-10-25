@@ -6,8 +6,8 @@ In the directory in which the code is present execute
 
 ### Running:
 > ./bush  
-
-or pass a file like  
+  
+or pass a file like  (deprecated)
 > ./bush a.sh  
 
 and it will execute it although its not very useful now.
@@ -28,7 +28,6 @@ Commands:
 - Did not handle spaces in file names in any of the commands.
 - There might be a lot of edge cases I missed.
 - All other commands are executed by creating a child process and then using `execvp`.
-- Upcoming builtins - `fg`, `bg`.
 - Any command which takes more than 1 sec will have its time take printed in the next prompt.
 
 Jobs:
@@ -40,15 +39,23 @@ Jobs:
 - Exitcodes and Signals are printed for processes not done normally. Using `strsignal` to print signal message. In higher GLIBC versions, `sigdescpr_np` would be a better option ig, but i dont have a higher GLIBC version.
 - Using this [link](https://spin0r.wordpress.com/2012/12/28/terminally-confused-part-seven/) as reference to implement jobs.
 - When a background process ends, it is printed along with job id and exit code if exited abnormally.  
+- `fg`, `bg`, `sig` are implemented as close to the specs as possible
 
 ### Signals:
 - blocked SIGINT, SIGTSP
 - Exits if Ctrl-D (ik not signal, just EOF)
 
+### Pipes
+- Now you can pipe the output of one command to another
+- Different commands in the pipeline are treated as different jobs
 
 ### Plans:  
-- Fix bugs in histoy (fadvise?)
-- arrow movement
-- tab completion
-- `aliases`
-- Pipes
+- [X] arrow movement
+- [X] tab completion
+- [ ] `aliases`
+- [X] Pipes
+
+### Bugs
+- Commands longer than screen size are messed up because of raw input.
+- Pipe line incompatible with with fg and bg.
+- Up arrow doesnt work properly

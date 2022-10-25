@@ -126,7 +126,8 @@ void discover(int argc, char** argv, char* home){
                 printf("%s/\n", files[i]);
             }
             else if(!dir_flag){
-                 printf("%s\n", files[i]);
+                if(!file_flag || (file_flag && !is_dir(files[i])))
+                    printf("%s\n", files[i]);
             }
             continue;
         }
